@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = 'http://10.1.40.188:5001/api';
 
 const Login = () => {
   const [view, setView] = useState('login'); // login, signup, forgot, reset

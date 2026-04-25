@@ -5,7 +5,7 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = 'http://10.1.40.188:5001/api';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
