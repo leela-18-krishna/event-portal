@@ -134,6 +134,12 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
       layout
       className="relative flex flex-col h-full p-6 rounded-3xl bg-slate-900/40 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 transition-all duration-500 group overflow-hidden"
     >
+      {event.imageUrl && (
+        <div className="absolute top-0 left-0 w-full h-40 opacity-40 group-hover:opacity-60 transition-opacity">
+          <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+        </div>
+      )}
       <RatingBlast rating={userRating} trigger={blastTrigger} />
       <EventAssets 
         show={assetModal.show} 

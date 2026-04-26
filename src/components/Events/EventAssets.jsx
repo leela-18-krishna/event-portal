@@ -102,7 +102,7 @@ const EventAssets = ({ show, type, event, user, currentReg, onClose }) => {
                   <p className="text-sm font-mono font-black text-slate-800 bg-slate-100 px-4 py-1 rounded-lg border border-slate-200">
                     {displayId}
                   </p>
-                  <p className="text-[7px] text-gray-400 mt-1 uppercase font-bold tracking-widest">Verify at: eventportal.com/verify</p>
+                  <p className="text-[7px] text-gray-400 mt-1 uppercase font-bold tracking-widest">Verify at: {window.location.hostname}/verify</p>
                 </div>
 
                 <div className="flex justify-between w-full mt-auto px-10">

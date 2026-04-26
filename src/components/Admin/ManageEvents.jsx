@@ -20,6 +20,7 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
     contactPhone: '',
     contactEmail: '',
     category: 'Technology',
+    imageUrl: '',
     subEvents: []
   });
   
@@ -88,6 +89,7 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
       contactPhone: event.contactPhone || '',
       contactEmail: event.contactEmail || '',
       category: event.category,
+      imageUrl: event.imageUrl || '',
       subEvents: event.subEvents || []
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -121,6 +123,7 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
         contactPhone: '',
         contactEmail: '',
         category: 'Technology',
+        imageUrl: '',
         subEvents: []
       });
       setEditingId(null);
@@ -212,6 +215,11 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
                   <option value="Other">Other</option>
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Event Banner URL (Optional)</label>
+              <input type="text" name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="https://example.com/poster.jpg" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 mb-6" />
             </div>
 
             <div>

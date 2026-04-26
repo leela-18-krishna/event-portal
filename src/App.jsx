@@ -13,6 +13,7 @@ import EventLocations from './components/Events/EventLocations';
 import Leaderboard from './components/Admin/Leaderboard';
 import NotificationCenter from './components/Effects/NotificationCenter';
 import Login from './pages/Login';
+import VerifyCertificate from './pages/VerifyCertificate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -110,6 +111,7 @@ function App() {
         <CartProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/verify/:id" element={<VerifyCertificate />} />
             <Route 
               path="/" 
               element={
