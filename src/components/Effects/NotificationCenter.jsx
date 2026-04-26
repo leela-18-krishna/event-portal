@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BellIcon } from '@heroicons/react/24/outline';
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const NotificationCenter = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
@@ -13,7 +15,7 @@ const NotificationCenter = () => {
   const fetchNotifications = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get('http://localhost:5001/api/events/notifications', config);
+      const { data } = await axios.get(`${API_URL}/events/notifications`, config);
       setNotifications(data);
     } catch (error) {
       console.error('Failed to fetch notifications');
@@ -23,7 +25,7 @@ const NotificationCenter = () => {
   const handleMarkAsRead = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put('http://localhost:5001/api/events/notifications/read', {}, config);
+      await axios.put(`${API_URL}/events/notifications/read`, {}, config);
       fetchNotifications();
     } catch (error) {
       console.error('Failed to mark notifications as read');

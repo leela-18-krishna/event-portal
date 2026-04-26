@@ -34,6 +34,8 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const DashboardStats = ({ events = [] }) => {
   const { user } = useAuth();
   const [cartEvents, setCartEvents] = useState([]);
@@ -43,7 +45,7 @@ const DashboardStats = ({ events = [] }) => {
     const fetchCart = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5001/api/events/cart', config);
+        const { data } = await axios.get(`${API_URL}/events/cart`, config);
         setCartEvents(data);
       } catch (error) {
         console.error('Failed to fetch cart:', error);
@@ -99,7 +101,7 @@ const DashboardStats = ({ events = [] }) => {
     if (!window.confirm("Are you sure you want to withdraw your registration history for this event?")) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5001/api/events/${eventId}/participant/${user._id}`, config);
+      await axios.delete(`${API_URL}/events/${eventId}/participant/${user._id}`, config);
       setCartEvents(prev => prev.filter(e => e._id !== eventId));
     } catch (error) {
       alert("Failed to withdraw registration");

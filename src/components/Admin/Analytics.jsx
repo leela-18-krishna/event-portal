@@ -5,6 +5,8 @@ import axios from 'axios';
 
 import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const Analytics = ({ events = [] }) => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
@@ -14,7 +16,7 @@ const Analytics = ({ events = [] }) => {
     const fetchAnalytics = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5001/api/users/analytics', config);
+        const { data } = await axios.get(`${API_URL}/users/analytics`, config);
         setStats(data);
       } catch (error) {
         console.error('Failed to fetch analytics', error);

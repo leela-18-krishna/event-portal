@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { StarIcon } from '@heroicons/react/24/solid';
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const AdminReviews = () => {
   const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
@@ -12,7 +14,7 @@ const AdminReviews = () => {
   const fetchReviews = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get('http://localhost:5001/api/events/all-reviews', config);
+      const { data } = await axios.get(`${API_URL}/events/all-reviews`, config);
       setReviews(data);
     } catch (error) {
       console.error('Failed to fetch reviews:', error);

@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 import EventCard from '../Events/EventCard';
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) => {
   const { user } = useAuth();
   
@@ -102,10 +104,10 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
       };
 
       if (editingId) {
-        await axios.put(`http://localhost:5001/api/events/${editingId}`, formData, config);
+        await axios.put(`${API_URL}/events/${editingId}`, formData, config);
         setMessage('Event updated successfully!');
       } else {
-        await axios.post('http://localhost:5001/api/events', formData, config);
+        await axios.post(`${API_URL}/events`, formData, config);
         setMessage('Event created successfully!');
       }
       
@@ -135,7 +137,7 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
     if (!window.confirm('Are you sure you want to delete this event?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5001/api/events/${id}`, config);
+      await axios.delete(`${API_URL}/events/${id}`, config);
       if(onEventAdded) onEventAdded(); // Refresh events list
       if (editingId === id) {
         setEditingId(null);

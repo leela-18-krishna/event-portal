@@ -3,13 +3,15 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { TrophyIcon, StarIcon } from '@heroicons/react/24/solid';
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const Leaderboard = () => {
   const [topUsers, setTopUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchLeaderboard = async () => {
     try {
-      const { data } = await axios.get('http://localhost:5001/api/events/leaderboard');
+      const { data } = await axios.get(`${API_URL}/events/leaderboard`);
       setTopUsers(data);
     } catch (error) {
       console.error('Failed to fetch leaderboard');

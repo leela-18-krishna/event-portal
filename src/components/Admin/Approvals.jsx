@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const Approvals = () => {
   const { user } = useAuth();
   const [eventsWithPending, setEventsWithPending] = useState([]);
@@ -12,7 +14,7 @@ const Approvals = () => {
   const fetchApprovals = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get('http://localhost:5001/api/events/approvals', config);
+      const { data } = await axios.get(`${API_URL}/events/approvals`, config);
       setEventsWithPending(data.filter(e => e.participants.length > 0)); // Only events that have participants
     } catch (error) {
       console.error('Failed to fetch approvals:', error);
@@ -28,7 +30,7 @@ const Approvals = () => {
   const handleStatusUpdate = async (eventId, userId, status) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put(`http://localhost:5001/api/events/${eventId}/status/${userId}`, { status }, config);
+      await axios.put(`${API_URL}/events/${eventId}/status/${userId}`, { status }, config);
       setMessage(`Participant ${status.toLowerCase()}!`);
       fetchApprovals();
       setTimeout(() => setMessage(''), 3000);
@@ -41,7 +43,7 @@ const Approvals = () => {
     if (!window.confirm("Are you sure you want to completely remove this participant's history from the event?")) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5001/api/events/${eventId}/participant/${userId}`, config);
+      await axios.delete(`${API_URL}/events/${eventId}/participant/${userId}`, config);
       setMessage('Participant removed from history.');
       fetchApprovals();
       setTimeout(() => setMessage(''), 3000);
