@@ -17,6 +17,8 @@ import axios from 'axios';
 import RatingBlast from '../Effects/RatingBlast';
 import EventAssets from './EventAssets';
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
   const { addToCart } = useCart();
   const { user } = useAuth();
@@ -47,7 +49,7 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
     if (!showChat) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`http://localhost:5001/api/events/${event._id}/discussions`, config);
+      const { data } = await axios.get(`${API_URL}/events/${event._id}/discussions`, config);
       setMessages(data);
     } catch (error) { console.error('Chat error'); }
   };
@@ -70,7 +72,7 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
     if (!newMessage.trim()) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post(`http://localhost:5001/api/events/${event._id}/discussions`, { message: newMessage }, config);
+      await axios.post(`${API_URL}/events/${event._id}/discussions`, { message: newMessage }, config);
       setNewMessage('');
       fetchMessages();
     } catch (error) { setStatus('Error sending message'); }
@@ -95,7 +97,7 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
           subSubEventTitle = event.subEvents[selectedSubEventIdx].subSubEvents[selectedSubSubEventIdx].title;
         }
       }
-      const res = await axios.post(`http://localhost:5001/api/events/${event._id}/register`, { subEventTitle, subSubEventTitle }, config);
+      const res = await axios.post(`${API_URL}/events/${event._id}/register`, { subEventTitle, subSubEventTitle }, config);
       setStatus(res.data.message);
       setTimeout(() => setStatus(''), 3000);
     } catch (error) {
@@ -108,7 +110,7 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
     if (userRating === 0) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post(`http://localhost:5001/api/events/${event._id}/reviews`, { rating: userRating, comment }, config);
+      await axios.post(`${API_URL}/events/${event._id}/reviews`, { rating: userRating, comment }, config);
       setReviewSubmitted(true);
       setBlastTrigger(prev => prev + 1);
       setStatus('Review submitted!');
