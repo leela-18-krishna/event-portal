@@ -86,15 +86,6 @@ export const authUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
-      // Check device limit (Excluding SuperAdmin)
-      if (user.role !== 'SuperAdmin' && user.deviceCount >= 2) {
-        return res.status(403).json({ message: 'Maximum device limit reached (2). Please logout from another device.' });
-      }
-
-      // Increment device count
-      user.deviceCount = (user.deviceCount || 0) + 1;
-      await user.save();
-
       res.json({
         _id: user._id,
         name: user.name,

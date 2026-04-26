@@ -34,12 +34,12 @@ export const updateUserProfile = async (req, res) => {
       user.securityAnswer = req.body.securityAnswer || user.securityAnswer;
 
       if (req.body.password) {
-        user.password = req.body.password; // Hook hashes it
+        user.password = req.body.password;
       }
 
       const updatedUser = await user.save();
 
-      res.json({
+      return res.json({
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
@@ -48,10 +48,14 @@ export const updateUserProfile = async (req, res) => {
         securityQuestion: updatedUser.securityQuestion,
         securityAnswer: updatedUser.securityAnswer,
         role: updatedUser.role,
+        token: req.headers.authorization.split(' ')[1] // Return the token back to keep the session alive
       });
+    } else {
+      res.status(404).json({ message: 'User not found' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Update Error:', error);
+    res.status(500).json({ message: 'Server Error: ' + error.message });
   }
 };
 

@@ -19,7 +19,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import InteractiveGlow from './components/Effects/InteractiveGlow';
 import SparklesEffect from './components/Effects/SparklesEffect';
 
-const API_URL = 'http://10.1.40.188:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();

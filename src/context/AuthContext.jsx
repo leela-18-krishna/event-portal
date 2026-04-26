@@ -5,7 +5,7 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
-const API_URL = 'http://10.1.40.188:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -54,14 +54,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      if (user?._id) {
-        await axios.post(`${API_URL}/auth/logout`, { userId: user._id });
-      }
-    } catch (err) {
-      console.error("Logout sync failed");
-    }
+  const logout = () => {
     localStorage.removeItem('userInfo');
     setUser(null);
   };
@@ -84,10 +77,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateUser = (updatedData) => {
-    const newUser = { ...user, ...updatedData };
-    setUser(newUser);
-    localStorage.setItem('userInfo', JSON.stringify(newUser));
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('userInfo', JSON.stringify(updatedUser));
   };
 
   return (

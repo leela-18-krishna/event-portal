@@ -6,6 +6,8 @@ import axios from 'axios';
 import { useTheme } from '../../context/ThemeContext';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+
 const Settings = () => {
   const { user, updateUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -54,7 +56,7 @@ const Settings = () => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.put('http://localhost:5001/api/users/profile', formData, config);
+      const { data } = await axios.put(`${API_URL}/users/profile`, formData, config);
       
       // Update global context so changes stick immediately
       updateUser(data);
@@ -70,7 +72,7 @@ const Settings = () => {
     if (window.confirm('Are you absolutely sure? This will permanently delete your account and all your data. This action cannot be undone.')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete('http://localhost:5001/api/users/profile', config);
+        await axios.delete(`${API_URL}/users/profile`, config);
         logout();
         navigate('/login');
       } catch (error) {
