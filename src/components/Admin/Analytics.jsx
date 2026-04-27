@@ -5,7 +5,7 @@ import axios from 'axios';
 
 import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 
-const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname.includes('10.1.') ? 'http://10.1.40.188:5001/api' : '/api');
+const API_URL = import.meta.env.VITE_API_URL || (window.location.port === '5173' || window.location.port === '5174' || window.location.port === '5175' ? `http://${window.location.hostname}:5001/api` : '/api');
 
 const Analytics = ({ events = [] }) => {
   const { user } = useAuth();
