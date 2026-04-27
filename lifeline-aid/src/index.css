@@ -1,0 +1,113 @@
+:root {
+  --primary: #ff3b3b;
+  --bg: #080808;
+  --surface: #121212;
+  --border: rgba(255, 255, 255, 0.05);
+  --text: #e0e0e0;
+  --text-dim: #707070;
+  font-size: 13px; /* Forced compact scale */
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #080808 100%);
+}
+
+.compact-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.icon-sm { width: 14px; height: 14px; }
+.icon-md { width: 18px; height: 18px; }
+.icon-lg { width: 22px; height: 22px; }
+
+input, button {
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.btn-mini {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-mini:hover { opacity: 0.8; }
+
+.scan-pulse {
+  position: relative;
+  width: 60px; /* Much smaller pulse */
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 59, 59, 0.05);
+  border: 1px solid rgba(255, 59, 59, 0.2);
+}
+
+
+/* Typography */
+h1, h2, h3, h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--primary-glow);
+}
+
+/* Animations */
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.pulse-emergency {
+  animation: pulse-red 2s infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
