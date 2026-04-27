@@ -32,12 +32,15 @@ const PORT = process.env.PORT || 5001;
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-  console.error('CRITICAL: MONGO_URI is missing from environment variables!');
+  console.error('--- CRITICAL CONFIG ERROR ---');
+  console.error('MONGO_URI is MISSING in Vercel settings!');
+  console.error('Please check Vercel -> Settings -> Environment Variables');
+  console.error('-----------------------------');
 }
 
 mongoose
   .connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 8000,
+    serverSelectionTimeoutMS: 10000,
   })
   .then(() => {
     console.log('MongoDB Connected Successfully');
