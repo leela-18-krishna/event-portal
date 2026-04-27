@@ -56,6 +56,16 @@ app.get('/', (req, res) => {
   res.send('Event Portal API is running...');
 });
 
+// Health Check Route
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'online',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    environment: process.env.NODE_ENV,
+    vercel: !!process.env.VERCEL
+  });
+});
+
 // Start Server (only if not on Vercel)
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
