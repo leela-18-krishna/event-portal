@@ -37,13 +37,16 @@ if (!MONGO_URI) {
 
 mongoose
   .connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 5000, // Fail fast if can't connect
+    serverSelectionTimeoutMS: 8000,
   })
   .then(() => {
     console.log('MongoDB Connected Successfully');
   })
   .catch((error) => {
-    console.error('MongoDB Connection Failed:', error.message);
+    console.error('--- CLOUD DB ERROR ---');
+    console.error('Error Message:', error.message);
+    console.error('URI Provided:', MONGO_URI ? 'YES (Masked)' : 'NO');
+    console.error('----------------------');
   });
 
 // Routes
