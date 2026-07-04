@@ -38,19 +38,41 @@ if (!MONGO_URI) {
   console.error('-----------------------------');
 }
 
-mongoose
-  .connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 10000,
-  })
-  .then(() => {
-    console.log('MongoDB Connected Successfully');
-  })
-  .catch((error) => {
-    console.error('--- CLOUD DB ERROR ---');
-    console.error('Error Message:', error.message);
-    console.error('URI Provided:', MONGO_URI ? 'YES (Masked)' : 'NO');
-    console.error('----------------------');
-  });
+let connectionPromise = null;
+
+function connectDB() {
+  if (mongoose.connection.readyState === 1) {
+    return Promise.resolve();
+  }
+  if (!connectionPromise) {
+    connectionPromise = mongoose
+      .connect(MONGO_URI, {
+        serverSelectionTimeoutMS: 10000,
+      })
+      .then(() => {
+        console.log('MongoDB Connected Successfully');
+      })
+      .catch((error) => {
+        console.error('--- CLOUD DB ERROR ---');
+        console.error('Error Message:', error.message);
+        console.error('URI Provided:', MONGO_URI ? 'YES (Masked)' : 'NO');
+        console.error('----------------------');
+        connectionPromise = null;
+        throw error;
+      });
+  }
+  return connectionPromise;
+}
+
+// Ensure the DB connection is ready before any route runs
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res.status(503).json({ message: 'Database connection unavailable, please try again shortly.' });
+  }
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -74,7 +96,9 @@ app.get('/api/health', (req, res) => {
 
 // Start Server (only if not on Vercel)
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+  connectDB().finally(() => {
+    app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+  });
 }
 
 export default app;
