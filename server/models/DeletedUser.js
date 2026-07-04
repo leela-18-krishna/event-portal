@@ -1,8 +1,5 @@
 import mongoose from 'mongoose';
 
-// Create a separate connection for the archive database
-const archiveConn = mongoose.createConnection('mongodb://127.0.0.1:27017/eventportal_archive');
-
 const DeletedUserSchema = new mongoose.Schema({
   originalId: String,
   name: String,
@@ -18,7 +15,10 @@ const DeletedUserSchema = new mongoose.Schema({
   }
 });
 
-// Use the archive connection to register the model
+// Reuse the app's existing MongoDB connection, just pointed at a
+// separate database ("eventportal_archive") for archived/deleted users.
+const archiveConn = mongoose.connection.useDb('eventportal_archive', { useCache: true });
+
 const DeletedUser = archiveConn.model('DeletedUser', DeletedUserSchema);
 
 export default DeletedUser;
