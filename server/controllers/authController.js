@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import User from '../models/User.js';
 import DeletedUser from '../models/DeletedUser.js';
+import PasswordReset from '../models/PasswordReset.js';
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -8,26 +10,46 @@ const generateToken = (id) => {
   });
 };
 
-const securityQuestions = [
-  "What is your favorite food?",
-  "Who is your favorite hero?",
-  "What is your favorite color?",
-  "What was your age on your last birthday?",
-  "What is your date of birth? (DD/MM/YYYY)",
-  "What is your secondary phone number?",
-  "What is your favorite place?",
-  "What is your favorite animal?"
-];
+const isGmail = (email) => /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email);
 
-export const getRandomQuestion = (req, res) => {
-  const randomIndex = Math.floor(Math.random() * securityQuestions.length);
-  res.json({ question: securityQuestions[randomIndex] });
+const maskEmail = (email) => {
+  const [local, domain] = email.split('@');
+  if (!domain) return email;
+  const maskedLocal = local.length <= 2
+    ? local[0] + '*'
+    : local[0] + '*'.repeat(local.length - 2) + local[local.length - 1];
+  return `${maskedLocal}@${domain}`;
+};
+
+const sendEmail = async (to, subject, text) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to,
+    subject,
+    text,
+  });
 };
 
 export const registerUser = async (req, res) => {
-  const { name, email, password, role, securityQuestion, securityAnswer } = req.body;
+  const { name, email, password, role, phone } = req.body;
 
   try {
+    if (!isGmail(email)) {
+      return res.status(400).json({ message: 'Only @gmail.com addresses are allowed' });
+    }
+
+    if (phone && !/^[0-9]{10}$/.test(phone)) {
+      return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       if (userExists.isDeleted) {
@@ -36,15 +58,13 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Check if account was archived in the separate collection
     const wasArchived = await DeletedUser.findOne({ email });
     if (wasArchived) {
       return res.status(400).json({ message: 'This account has been permanently deleted and the email is blacklisted.' });
     }
 
-    // Check if an admin already exists
-    if (role === 'Admin') {
-      const adminExists = await User.findOne({ role: 'Admin' });
+    if (role === 'Admin' || role === 'SuperAdmin') {
+      const adminExists = await User.findOne({ role: { $in: ['Admin', 'SuperAdmin'] } });
       if (adminExists) {
         return res.status(400).json({ message: 'An Admin account already exists. Only one Admin is allowed.' });
       }
@@ -54,9 +74,8 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password,
+      phone,
       role: role || 'Participant',
-      securityQuestion,
-      securityAnswer,
     });
 
     if (user) {
@@ -66,8 +85,6 @@ export const registerUser = async (req, res) => {
         email: user.email,
         phone: user.phone,
         profilePic: user.profilePic,
-        securityQuestion: user.securityQuestion,
-        securityAnswer: user.securityAnswer,
         role: user.role,
         token: generateToken(user._id),
       });
@@ -75,6 +92,10 @@ export const registerUser = async (req, res) => {
       res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      const firstError = Object.values(error.errors)[0]?.message || 'Invalid data';
+      return res.status(400).json({ message: firstError });
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -92,8 +113,6 @@ export const authUser = async (req, res) => {
         email: user.email,
         phone: user.phone,
         profilePic: user.profilePic,
-        securityQuestion: user.securityQuestion,
-        securityAnswer: user.securityAnswer,
         role: user.role,
         token: generateToken(user._id),
       });
@@ -105,9 +124,6 @@ export const authUser = async (req, res) => {
   }
 };
 
-// @desc    Logout user / clear device session
-// @route   POST /api/auth/logout
-// @access  Private
 export const logoutUser = async (req, res) => {
   try {
     const user = await User.findById(req.body.userId);
@@ -120,42 +136,62 @@ export const logoutUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    
-    // Fallback for existing users who don't have a question set yet
-    if (!user.securityQuestion) {
-      user.securityQuestion = "What is your favorite food?";
-      user.securityAnswer = "pizza";
-      await user.save();
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with that email' });
     }
-    
-    res.json({ question: user.securityQuestion });
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+
+    await PasswordReset.deleteMany({ email });
+    await PasswordReset.create({
+      email,
+      code,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    });
+
+    await sendEmail(
+      email,
+      'Event Portal Password Reset Code',
+      `Your Event Portal password reset code is: ${code}\n\nThis code expires in 15 minutes.`
+    );
+
+    res.json({ message: 'Code sent', maskedEmail: maskEmail(email) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
 export const resetPassword = async (req, res) => {
-  const { email, securityAnswer, newPassword } = req.body;
+  const { email, code, newPassword } = req.body;
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    if (user.securityAnswer.toLowerCase() !== securityAnswer.toLowerCase()) {
-      return res.status(400).json({ message: 'Incorrect security answer' });
+    const resetDoc = await PasswordReset.findOne({ email, code });
+    if (!resetDoc) {
+      return res.status(400).json({ message: 'Invalid or expired code' });
+    }
+    if (resetDoc.expiresAt < new Date()) {
+      await PasswordReset.deleteOne({ _id: resetDoc._id });
+      return res.status(400).json({ message: 'Code has expired' });
     }
 
-    // Check if new password is same as old password
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     if (await user.matchPassword(newPassword)) {
       return res.status(400).json({ message: 'New password cannot be the same as the current password' });
     }
 
     user.password = newPassword;
     await user.save();
+
+    await PasswordReset.deleteOne({ _id: resetDoc._id });
+
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     res.status(500).json({ message: error.message });

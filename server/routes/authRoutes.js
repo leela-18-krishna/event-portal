@@ -1,9 +1,8 @@
 import express from 'express';
-import { registerUser, authUser, getRandomQuestion, forgotPassword, resetPassword, logoutUser } from '../controllers/authController.js';
+import { registerUser, authUser, forgotPassword, resetPassword, logoutUser } from '../controllers/authController.js';
 
 const router = express.Router();
 
-router.get('/random-question', getRandomQuestion);
 router.post('/register', registerUser);
 router.post('/login', authUser);
 router.post('/logout', logoutUser);
