@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import { useTheme } from '../../context/ThemeContext';
-import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 const API_URL = import.meta.env.VITE_API_URL || (window.location.port === '5173' || window.location.port === '5174' || window.location.port === '5175' ? `http://${window.location.hostname}:5001/api` : '/api');
 
@@ -17,22 +17,20 @@ const Settings = () => {
     email: '',
     phone: '',
     profilePic: '',
-    securityQuestion: '',
-    securityAnswer: '',
     password: ''
   });
   const [message, setMessage] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
-      setFormData({ 
-        name: user.name || '', 
-        email: user.email || '', 
-        phone: user.phone || '', 
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
         profilePic: user.profilePic || '',
-        securityQuestion: user.securityQuestion || '',
-        securityAnswer: user.securityAnswer || '',
-        password: '' 
+        password: ''
       });
     }
   }, [user]);
@@ -52,15 +50,32 @@ const Settings = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handlePhoneChange = (e) => {
+    // Only allow digits, max 10 characters
+    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setFormData({ ...formData, phone: digitsOnly });
+    if (digitsOnly.length > 0 && digitsOnly.length < 10) {
+      setPhoneError('Phone number must be exactly 10 digits');
+    } else {
+      setPhoneError('');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.phone && formData.phone.length !== 10) {
+      setPhoneError('Phone number must be exactly 10 digits');
+      return;
+    }
+
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.put(`${API_URL}/users/profile`, formData, config);
-      
+
       // Update global context so changes stick immediately
       updateUser(data);
-      
+
       setMessage('Profile updated successfully!');
       setTimeout(() => setMessage(''), 4000);
     } catch (error) {
@@ -94,7 +109,7 @@ const Settings = () => {
         </div>
       )}
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="p-8 rounded-3xl bg-slate-900/40 backdrop-blur-2xl border border-white/10 shadow-2xl"
@@ -128,31 +143,43 @@ const Settings = () => {
                 <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Update your name" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Email Address</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Update your email" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
+                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Email Address (Gmail only)</label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="you@gmail.com" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Phone Number</label>
-                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="Add your phone number" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide text-indigo-400">Security Question</label>
-                <select name="securityQuestion" value={formData.securityQuestion} onChange={handleChange} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 mb-2">
-                  <option value="" disabled>Select a question</option>
-                  <option value="What is your favorite food?">What is your favorite food?</option>
-                  <option value="Who is your favorite hero?">Who is your favorite hero?</option>
-                  <option value="What is your favorite color?">What is your favorite color?</option>
-                  <option value="What was your age on your last birthday?">What was your age on your last birthday?</option>
-                  <option value="What is your date of birth? (DD/MM/YYYY)">What is your date of birth? (DD/MM/YYYY)</option>
-                  <option value="What is your secondary phone number?">What is your secondary phone number?</option>
-                  <option value="What is your favorite place?">What is your favorite place?</option>
-                  <option value="What is your favorite animal?">What is your favorite animal?</option>
-                </select>
-                <input type="text" name="securityAnswer" value={formData.securityAnswer} onChange={handleChange} placeholder="Security Answer" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handlePhoneChange}
+                  placeholder="10-digit number"
+                  maxLength={10}
+                  inputMode="numeric"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+                />
+                {phoneError && <p className="text-xs text-red-400 mt-1">{phoneError}</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">New Password</label>
-                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Leave blank to keep current" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Leave blank to keep current"
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -169,7 +196,7 @@ const Settings = () => {
                   <p className="text-sm text-gray-400">Switch between dark and light themes.</p>
                 </div>
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={toggleTheme}
                 className="relative inline-flex items-center h-8 w-16 rounded-full bg-slate-800 transition-colors focus:outline-none border border-white/10"
@@ -219,7 +246,7 @@ const Settings = () => {
                   <p className="text-white font-bold">Delete Account</p>
                   <p className="text-sm text-gray-400">Once you delete your account, there is no going back. Please be certain.</p>
                 </div>
-                <button 
+                <button
                   type="button"
                   onClick={handleDeleteAccount}
                   className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:shadow-[0_0_30px_rgba(239,68,68,0.5)]"

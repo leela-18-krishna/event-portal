@@ -9,7 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || (window.location.port === '5173'
 
 const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) => {
   const { user } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -20,10 +20,9 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
     contactPhone: '',
     contactEmail: '',
     category: 'Technology',
-    imageUrl: '',
     subEvents: []
   });
-  
+
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState('');
 
@@ -89,7 +88,6 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
       contactPhone: event.contactPhone || '',
       contactEmail: event.contactEmail || '',
       category: event.category,
-      imageUrl: event.imageUrl || '',
       subEvents: event.subEvents || []
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -112,7 +110,7 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
         await axios.post(`${API_URL}/events`, formData, config);
         setMessage('Event created successfully!');
       }
-      
+
       setFormData({
         title: '',
         description: '',
@@ -123,13 +121,12 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
         contactPhone: '',
         contactEmail: '',
         category: 'Technology',
-        imageUrl: '',
         subEvents: []
       });
       setEditingId(null);
-      
+
       if(onEventAdded) onEventAdded();
-      
+
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       setMessage(error.response?.data?.message || `Error ${editingId ? 'updating' : 'creating'} event`);
@@ -141,7 +138,7 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       await axios.delete(`${API_URL}/events/${id}`, config);
-      if(onEventAdded) onEventAdded(); // Refresh events list
+      if(onEventAdded) onEventAdded();
       if (editingId === id) {
         setEditingId(null);
         setFormData({ title: '', description: '', date: '', venue: '', prizeMoneyPool: 0, contactPhone: '', contactEmail: '', category: 'Technology', subEvents: [] });
@@ -168,9 +165,9 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
             </div>
           ) : (
             userEvents.map(event => (
-              <EventCard 
-                key={event._id} 
-                event={event} 
+              <EventCard
+                key={event._id}
+                event={event}
                 onEdit={() => handleEdit(event)}
                 onDelete={() => handleDelete(event._id)}
               />
@@ -185,13 +182,13 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
           <p className="text-gray-400">{editingId ? 'Update your event details.' : 'Create and publish new events to the platform.'}</p>
         </header>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="p-8 rounded-3xl bg-slate-900/40 backdrop-blur-2xl border border-white/10 shadow-2xl"
         >
           <h3 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-4">{editingId ? 'Update Details' : 'Create New Event'}</h3>
-          
+
           {message && (
             <div className={`mb-6 p-4 rounded-xl text-sm font-bold text-center ${message.includes('success') ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
               {message}
@@ -215,11 +212,6 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
                   <option value="Other">Other</option>
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Event Banner URL (Optional)</label>
-              <input type="text" name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="https://example.com/poster.jpg" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 mb-6" />
             </div>
 
             <div>
@@ -258,7 +250,6 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
               </div>
             </div>
 
-            {/* Sub-Events Section */}
             <div className="pt-6 border-t border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <label className="block text-sm font-bold text-white tracking-wide">Sub-Events & Categories</label>
@@ -266,7 +257,7 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
                   + Add Sub-Event
                 </button>
               </div>
-              
+
               {formData.subEvents.length === 0 ? (
                 <p className="text-xs text-gray-500 italic mb-4">No sub-events added. Participants will register for the main event.</p>
               ) : (
@@ -291,7 +282,6 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
                         </div>
                       </div>
 
-                      {/* Sub-Sub-Events */}
                       <div className="mt-4 pl-4 border-l-2 border-white/10">
                         <div className="flex justify-between items-center mb-2">
                           <label className="block text-xs font-bold text-gray-400 tracking-wide">Nested Sub-Events</label>
@@ -327,8 +317,8 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
 
             <div className="pt-4 border-t border-white/10 flex justify-end space-x-4">
               {editingId && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setEditingId(null);
                     setFormData({ title: '', description: '', date: '', venue: '', prizeMoneyPool: 0, contactPhone: '', contactEmail: '', category: 'Technology', subEvents: [] });

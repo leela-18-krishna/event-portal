@@ -12,7 +12,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
     const userInfo = localStorage.getItem('userInfo');
     if (userInfo) {
       setUser(JSON.parse(userInfo));
@@ -28,11 +27,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('userInfo', JSON.stringify(data));
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response && error.response.data.message 
-          ? error.response.data.message 
-          : error.message 
+      return {
+        success: false,
+        message: error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
       };
     }
   };
@@ -45,11 +44,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('userInfo', JSON.stringify(data));
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response && error.response.data.message 
-          ? error.response.data.message 
-          : error.message 
+      return {
+        success: false,
+        message: error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
       };
     }
   };
@@ -62,15 +61,15 @@ export const AuthProvider = ({ children }) => {
   const forgotPassword = async (email) => {
     try {
       const { data } = await axios.post(`${API_URL}/auth/forgot-password`, { email });
-      return { success: true, question: data.question };
+      return { success: true, maskedEmail: data.maskedEmail };
     } catch (error) {
       return { success: false, message: error.response?.data?.message || error.message };
     }
   };
 
-  const resetPassword = async (email, securityAnswer, newPassword) => {
+  const resetPassword = async (email, code, newPassword) => {
     try {
-      const { data } = await axios.post(`${API_URL}/auth/reset-password`, { email, securityAnswer, newPassword });
+      const { data } = await axios.post(`${API_URL}/auth/reset-password`, { email, code, newPassword });
       return { success: true, message: data.message };
     } catch (error) {
       return { success: false, message: error.response?.data?.message || error.message };
