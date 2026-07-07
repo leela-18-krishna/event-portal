@@ -42,6 +42,10 @@ export const registerUser = async (req, res) => {
   const { name, email, password, role, phone } = req.body;
 
   try {
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Username is required' });
+    }
+
     if (!isGmail(email)) {
       return res.status(400).json({ message: 'Only @gmail.com addresses are allowed' });
     }
@@ -50,12 +54,17 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
     }
 
+    const nameTaken = await User.findOne({ name: name.trim().toLowerCase() });
+    if (nameTaken) {
+      return res.status(400).json({ message: 'Username is already taken' });
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       if (userExists.isDeleted) {
         return res.status(400).json({ message: 'This account has been deleted and the email is blacklisted.' });
       }
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'Email already registered' });
     }
 
     const wasArchived = await DeletedUser.findOne({ email });
@@ -96,15 +105,19 @@ export const registerUser = async (req, res) => {
       const firstError = Object.values(error.errors)[0]?.message || 'Invalid data';
       return res.status(400).json({ message: firstError });
     }
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      return res.status(400).json({ message: `That ${field} is already in use` });
+    }
     res.status(500).json({ message: error.message });
   }
 };
 
 export const authUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { name, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ name: (name || '').trim().toLowerCase() });
 
     if (user && (await user.matchPassword(password))) {
       res.json({
@@ -117,7 +130,7 @@ export const authUser = async (req, res) => {
         token: generateToken(user._id),
       });
     } else {
-      res.status(401).json({ message: 'Invalid email or password' });
+      res.status(401).json({ message: 'Invalid username or password' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -138,38 +151,53 @@ export const logoutUser = async (req, res) => {
 };
 
 export const forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  const { name } = req.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ name: (name || '').trim().toLowerCase() });
     if (!user) {
-      return res.status(404).json({ message: 'No account found with that email' });
+      return res.status(404).json({ message: 'No account found with that username' });
+    }
+    res.json({ maskedEmail: maskEmail(user.email) });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const sendForgotCode = async (req, res) => {
+  const { name } = req.body;
+  try {
+    const user = await User.findOne({ name: (name || '').trim().toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with that username' });
     }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
 
-    await PasswordReset.deleteMany({ email });
+    await PasswordReset.deleteMany({ name: user.name });
     await PasswordReset.create({
-      email,
+      name: user.name,
+      email: user.email,
       code,
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
     await sendEmail(
-      email,
+      user.email,
       'Event Portal Password Reset Code',
       `Your Event Portal password reset code is: ${code}\n\nThis code expires in 15 minutes.`
     );
 
-    res.json({ message: 'Code sent', maskedEmail: maskEmail(email) });
+    res.json({ message: 'Code sent', maskedEmail: maskEmail(user.email) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
 export const resetPassword = async (req, res) => {
-  const { email, code, newPassword } = req.body;
+  const { name, code, newPassword } = req.body;
   try {
-    const resetDoc = await PasswordReset.findOne({ email, code });
+    const cleanName = (name || '').trim().toLowerCase();
+    const resetDoc = await PasswordReset.findOne({ name: cleanName, code });
     if (!resetDoc) {
       return res.status(400).json({ message: 'Invalid or expired code' });
     }
@@ -178,7 +206,7 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Code has expired' });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ name: cleanName });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

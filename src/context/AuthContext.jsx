@@ -19,27 +19,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (username, password) => {
     try {
       const config = { headers: { 'Content-Type': 'application/json' } };
-      const { data } = await axios.post(`${API_URL}/auth/login`, { email, password }, config);
-      setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message
-      };
-    }
-  };
-
-  const register = async (name, email, password) => {
-    try {
-      const config = { headers: { 'Content-Type': 'application/json' } };
-      const { data } = await axios.post(`${API_URL}/auth/register`, { name, email, password, role: 'Participant' }, config);
+      const { data } = await axios.post(`${API_URL}/auth/login`, { name: username, password }, config);
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       return { success: true };
@@ -58,31 +41,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const forgotPassword = async (email) => {
-    try {
-      const { data } = await axios.post(`${API_URL}/auth/forgot-password`, { email });
-      return { success: true, maskedEmail: data.maskedEmail };
-    } catch (error) {
-      return { success: false, message: error.response?.data?.message || error.message };
-    }
-  };
-
-  const resetPassword = async (email, code, newPassword) => {
-    try {
-      const { data } = await axios.post(`${API_URL}/auth/reset-password`, { email, code, newPassword });
-      return { success: true, message: data.message };
-    } catch (error) {
-      return { success: false, message: error.response?.data?.message || error.message };
-    }
-  };
-
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
     localStorage.setItem('userInfo', JSON.stringify(updatedUser));
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, forgotPassword, resetPassword, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

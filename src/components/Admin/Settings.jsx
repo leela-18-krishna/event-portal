@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import { useTheme } from '../../context/ThemeContext';
-import { SunIcon, MoonIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 
 const API_URL = import.meta.env.VITE_API_URL || (window.location.port === '5173' || window.location.port === '5174' || window.location.port === '5175' ? `http://${window.location.hostname}:5001/api` : '/api');
 
@@ -17,11 +17,9 @@ const Settings = () => {
     email: '',
     phone: '',
     profilePic: '',
-    password: ''
   });
   const [message, setMessage] = useState('');
   const [phoneError, setPhoneError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -30,7 +28,6 @@ const Settings = () => {
         email: user.email || '',
         phone: user.phone || '',
         profilePic: user.profilePic || '',
-        password: ''
       });
     }
   }, [user]);
@@ -51,7 +48,6 @@ const Settings = () => {
   };
 
   const handlePhoneChange = (e) => {
-    // Only allow digits, max 10 characters
     const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
     setFormData({ ...formData, phone: digitsOnly });
     if (digitsOnly.length > 0 && digitsOnly.length < 10) {
@@ -73,7 +69,6 @@ const Settings = () => {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.put(`${API_URL}/users/profile`, formData, config);
 
-      // Update global context so changes stick immediately
       updateUser(data);
 
       setMessage('Profile updated successfully!');
@@ -159,27 +154,6 @@ const Settings = () => {
                   className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
                 />
                 {phoneError && <p className="text-xs text-red-400 mt-1">{phoneError}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">New Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Leave blank to keep current"
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-indigo-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                  </button>
-                </div>
               </div>
             </div>
           </div>

@@ -34,21 +34,34 @@ const PasswordInput = ({ label, value, onChange, placeholder }) => {
   );
 };
 
+const emptyState = {
+  username: '',
+  email: '',
+  password: '',
+  resetCode: '',
+  newPassword: '',
+};
+
 const Login = () => {
-  const [view, setView] = useState('login'); // login, signup, forgot, reset
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [view, setView] = useState('login'); // login, signup, forgot, forgotConfirm, reset
+  const [fields, setFields] = useState(emptyState);
   const [role, setRole] = useState('Participant');
-  const [resetCode, setResetCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
   const [maskedEmail, setMaskedEmail] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, register } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
+
+  const updateField = (key) => (e) => setFields({ ...fields, [key]: e.target.value });
+
+  const goToView = (nextView) => {
+    setError('');
+    setMessage('');
+    setFields(emptyState);
+    setView(nextView);
+  };
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -58,26 +71,38 @@ const Login = () => {
 
     try {
       if (view === 'login') {
-        const res = await login(email, password);
+        const res = await login(fields.username, fields.password);
         if (res.success) navigate('/');
         else setError(res.message);
       }
       else if (view === 'signup') {
         try {
-          const res = await axios.post(`${API_URL}/auth/register`, {
-            name, email, password, role
+          await axios.post(`${API_URL}/auth/register`, {
+            name: fields.username,
+            email: fields.email,
+            password: fields.password,
+            role
           });
-          if (res.data) {
-            setMessage('Registration successful! Please login.');
-            setView('login');
-          }
+          logout();
+          setFields(emptyState);
+          setMessage('Registration successful! Please login.');
+          setView('login');
         } catch (err) {
           setError(err.response?.data?.message || 'Registration failed');
         }
       }
       else if (view === 'forgot') {
         try {
-          const { data } = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+          const { data } = await axios.post(`${API_URL}/auth/forgot-password`, { name: fields.username });
+          setMaskedEmail(data.maskedEmail);
+          setView('forgotConfirm');
+        } catch (err) {
+          setError(err.response?.data?.message || 'Could not find that username');
+        }
+      }
+      else if (view === 'forgotConfirm') {
+        try {
+          const { data } = await axios.post(`${API_URL}/auth/forgot-password/send`, { name: fields.username });
           setMaskedEmail(data.maskedEmail);
           setMessage(`A verification code has been sent to ${data.maskedEmail}`);
           setView('reset');
@@ -88,12 +113,10 @@ const Login = () => {
       else if (view === 'reset') {
         try {
           const { data } = await axios.post(`${API_URL}/auth/reset-password`, {
-            email, code: resetCode, newPassword
+            name: fields.username, code: fields.resetCode, newPassword: fields.newPassword
           });
           setMessage(data.message || 'Password reset successful! Please login.');
-          setView('login');
-          setResetCode('');
-          setNewPassword('');
+          goToView('login');
         } catch (err) {
           setError(err.response?.data?.message || 'Reset failed');
         }
@@ -105,7 +128,6 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4 overflow-hidden relative">
-      {/* Background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
 
       <motion.div
@@ -123,6 +145,7 @@ const Login = () => {
               {view === 'login' && 'Log in to your account'}
               {view === 'signup' && 'Create a new account'}
               {view === 'forgot' && 'Password Recovery'}
+              {view === 'forgotConfirm' && 'Confirm Your Email'}
               {view === 'reset' && 'Enter Verification Code'}
             </p>
           </div>
@@ -163,30 +186,38 @@ const Login = () => {
               </div>
             )}
 
-            {view === 'signup' && (
+            {(view === 'login' || view === 'signup' || view === 'forgot') && (
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Name</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all" required />
+                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Username</label>
+                <input
+                  type="text"
+                  value={fields.username}
+                  onChange={updateField('username')}
+                  placeholder={view === 'signup' ? 'Choose a username' : 'Your username'}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all"
+                  required
+                />
               </div>
             )}
 
-            {(view === 'login' || view === 'signup' || view === 'forgot' || view === 'reset') && (
+            {view === 'signup' && (
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">
-                  {view === 'signup' ? 'Gmail Address' : 'Email'}
-                </label>
+                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Gmail Address</label>
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={view === 'signup' ? 'you@gmail.com' : ''}
-                  disabled={view === 'reset'}
-                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all disabled:opacity-60"
+                  value={fields.email}
+                  onChange={updateField('email')}
+                  placeholder="you@gmail.com"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all"
                   required
                 />
-                {view === 'signup' && (
-                  <p className="text-xs text-gray-500 mt-1">Only @gmail.com addresses are accepted.</p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">Only @gmail.com addresses are accepted. Example admin: saiadmin@gmail.com</p>
+              </div>
+            )}
+
+            {(view === 'forgotConfirm') && (
+              <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-indigo-100 text-sm">
+                We'll send a verification code to <strong>{maskedEmail}</strong>. Is this correct?
               </div>
             )}
 
@@ -195,8 +226,8 @@ const Login = () => {
                 <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Verification Code</label>
                 <input
                   type="text"
-                  value={resetCode}
-                  onChange={(e) => setResetCode(e.target.value)}
+                  value={fields.resetCode}
+                  onChange={updateField('resetCode')}
                   placeholder="6-digit code"
                   className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all"
                   required
@@ -207,16 +238,16 @@ const Login = () => {
             {(view === 'login' || view === 'signup') && (
               <PasswordInput
                 label="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={fields.password}
+                onChange={updateField('password')}
               />
             )}
 
             {view === 'reset' && (
               <PasswordInput
                 label="New Password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                value={fields.newPassword}
+                onChange={updateField('newPassword')}
                 placeholder="Minimum 6 characters"
               />
             )}
@@ -226,7 +257,8 @@ const Login = () => {
                 <>
                   {view === 'login' && 'Sign In'}
                   {view === 'signup' && 'Create Account'}
-                  {view === 'forgot' && 'Send Reset Code'}
+                  {view === 'forgot' && 'Find Account'}
+                  {view === 'forgotConfirm' && 'Yes, Send the Code'}
                   {view === 'reset' && 'Reset Password'}
                 </>
               )}
@@ -235,11 +267,11 @@ const Login = () => {
             <div className="flex flex-col gap-3 text-center mt-6">
               {view === 'login' ? (
                 <>
-                  <button type="button" onClick={() => setView('signup')} className="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">Don't have an account? Sign Up</button>
-                  <button type="button" onClick={() => setView('forgot')} className="text-gray-500 hover:text-gray-400 text-xs font-medium transition-colors">Forgot Password?</button>
+                  <button type="button" onClick={() => goToView('signup')} className="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">Don't have an account? Sign Up</button>
+                  <button type="button" onClick={() => goToView('forgot')} className="text-gray-500 hover:text-gray-400 text-xs font-medium transition-colors">Forgot Password?</button>
                 </>
               ) : (
-                <button type="button" onClick={() => { setView('login'); setError(''); setMessage(''); }} className="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">Back to Login</button>
+                <button type="button" onClick={() => goToView('login')} className="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">Back to Login</button>
               )}
             </div>
           </form>
