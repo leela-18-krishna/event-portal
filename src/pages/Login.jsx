@@ -43,7 +43,7 @@ const emptyState = {
 };
 
 const Login = () => {
-  const [view, setView] = useState('login'); // login, signup, forgot, forgotConfirm, reset
+  const [view, setView] = useState('login');
   const [fields, setFields] = useState(emptyState);
   const [role, setRole] = useState('Participant');
   const [maskedEmail, setMaskedEmail] = useState('');
@@ -77,6 +77,7 @@ const Login = () => {
       }
       else if (view === 'signup') {
         try {
+          const requestedAdmin = role === 'Admin';
           await axios.post(`${API_URL}/auth/register`, {
             name: fields.username,
             email: fields.email,
@@ -85,7 +86,12 @@ const Login = () => {
           });
           logout();
           setFields(emptyState);
-          setMessage('Registration successful! Please login.');
+          setRole('Participant');
+          setMessage(
+            requestedAdmin
+              ? 'Registration successful! Your request for Admin access has been sent to the Super Admin for approval. You can log in now with standard access in the meantime.'
+              : 'Registration successful! Please login.'
+          );
           setView('login');
         } catch (err) {
           setError(err.response?.data?.message || 'Registration failed');
@@ -183,6 +189,9 @@ const Login = () => {
                     ADMIN
                   </button>
                 </div>
+                {role === 'Admin' && (
+                  <p className="text-xs text-amber-400 mt-2">Admin access requires approval from the Super Admin after signup.</p>
+                )}
               </div>
             )}
 
@@ -211,7 +220,7 @@ const Login = () => {
                   className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Only @gmail.com addresses are accepted. Example admin: saiadmin@gmail.com</p>
+                <p className="text-xs text-gray-500 mt-1">Only @gmail.com addresses are accepted.</p>
               </div>
             )}
 

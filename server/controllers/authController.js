@@ -21,7 +21,7 @@ const maskEmail = (email) => {
   return `${maskedLocal}@${domain}`;
 };
 
-const sendEmail = async (to, subject, text) => {
+export const sendEmail = async (to, subject, text) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -72,19 +72,15 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'This account has been permanently deleted and the email is blacklisted.' });
     }
 
-    if (role === 'Admin' || role === 'SuperAdmin') {
-      const adminExists = await User.findOne({ role: { $in: ['Admin', 'SuperAdmin'] } });
-      if (adminExists) {
-        return res.status(400).json({ message: 'An Admin account already exists. Only one Admin is allowed.' });
-      }
-    }
+    const wantsAdmin = role === 'Admin';
 
     const user = await User.create({
       name,
       email,
       password,
       phone,
-      role: role || 'Participant',
+      role: 'Participant',
+      adminRequestStatus: wantsAdmin ? 'pending' : 'none',
     });
 
     if (user) {
@@ -95,6 +91,7 @@ export const registerUser = async (req, res) => {
         phone: user.phone,
         profilePic: user.profilePic,
         role: user.role,
+        adminRequestStatus: user.adminRequestStatus,
         token: generateToken(user._id),
       });
     } else {
@@ -127,6 +124,7 @@ export const authUser = async (req, res) => {
         phone: user.phone,
         profilePic: user.profilePic,
         role: user.role,
+        adminRequestStatus: user.adminRequestStatus,
         token: generateToken(user._id),
       });
     } else {

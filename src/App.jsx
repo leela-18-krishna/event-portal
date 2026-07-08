@@ -9,6 +9,7 @@ import Approvals from './components/Admin/Approvals';
 import Settings from './components/Admin/Settings';
 import Analytics from './components/Admin/Analytics';
 import AdminReviews from './components/Admin/AdminReviews';
+import AdminRequests from './components/Admin/AdminRequests';
 import EventLocations from './components/Events/EventLocations';
 import Leaderboard from './components/Admin/Leaderboard';
 import NotificationCenter from './components/Effects/NotificationCenter';
@@ -47,7 +48,7 @@ const MainLayout = () => {
 
   useEffect(() => {
     fetchEvents();
-    const interval = setInterval(fetchEvents, 2000); // Poll every 2s for instant updates
+    const interval = setInterval(fetchEvents, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -63,6 +64,7 @@ const MainLayout = () => {
         {activeTab === 'Dashboard' && <DashboardStats events={events} />}
         {activeTab === 'Manage Events' && <ManageEvents onEventAdded={fetchEvents} events={events} eventToEdit={eventToEdit} onEditStart={() => setEventToEdit(null)} />}
         {activeTab === 'Approvals' && <Approvals />}
+        {activeTab === 'Admin Requests' && <AdminRequests />}
         {activeTab === 'Settings' && <Settings />}
         {activeTab === 'Reviews' && <AdminReviews />}
         {activeTab === 'Analytics' && <Analytics events={events} />}

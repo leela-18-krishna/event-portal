@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Event from '../models/Event.js';
 import DeletedUser from '../models/DeletedUser.js';
+import { sendEmail } from './authController.js';
 
 const isGmail = (email) => /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email);
 
@@ -48,6 +49,7 @@ export const updateUserProfile = async (req, res) => {
         phone: updatedUser.phone,
         profilePic: updatedUser.profilePic,
         role: updatedUser.role,
+        adminRequestStatus: updatedUser.adminRequestStatus,
         token: req.headers.authorization.split(' ')[1]
       });
     } else {
@@ -112,6 +114,74 @@ export const getUserAnalytics = async (req, res) => {
       });
       res.json({ role: req.user.role, totalEventsCreated: events.length, totalParticipants, totalPendingRequests: totalPending });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getAdminRequests = async (req, res) => {
+  try {
+    const requests = await User.find({ adminRequestStatus: 'pending' }).select('-password');
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const approveAdminRequest = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.adminRequestStatus !== 'pending') {
+      return res.status(400).json({ message: 'This request is not pending' });
+    }
+
+    user.role = 'Admin';
+    user.adminRequestStatus = 'approved';
+    await user.save();
+
+    try {
+      await sendEmail(
+        user.email,
+        'Event Portal: Admin Access Approved',
+        `Hi ${user.name},\n\nYour request for Admin access on Event Portal has been approved. You can now log in with your existing username and password to access Admin features.\n\n- Event Portal Team`
+      );
+    } catch (emailErr) {
+      console.error('Approval email failed to send:', emailErr.message);
+    }
+
+    res.json({ message: 'Admin request approved', user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const rejectAdminRequest = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.adminRequestStatus !== 'pending') {
+      return res.status(400).json({ message: 'This request is not pending' });
+    }
+
+    user.adminRequestStatus = 'rejected';
+    await user.save();
+
+    try {
+      await sendEmail(
+        user.email,
+        'Event Portal: Admin Access Request Update',
+        `Hi ${user.name},\n\nYour request for Admin access on Event Portal was not approved at this time. You can continue using your account as a regular Participant.\n\n- Event Portal Team`
+      );
+    } catch (emailErr) {
+      console.error('Rejection email failed to send:', emailErr.message);
+    }
+
+    res.json({ message: 'Admin request rejected', user });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

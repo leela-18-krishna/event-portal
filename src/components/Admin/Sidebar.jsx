@@ -10,7 +10,8 @@ import {
   CheckBadgeIcon,
   StarIcon,
   MapPinIcon,
-  TrophyIcon
+  TrophyIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
 
@@ -20,6 +21,7 @@ const navItems = [
   { name: 'Registrations', icon: UsersIcon },
   { name: 'Event Locations', icon: MapPinIcon },
   { name: 'Approvals', icon: CheckBadgeIcon },
+  { name: 'Admin Requests', icon: ShieldCheckIcon },
   { name: 'Reviews', icon: StarIcon },
   { name: 'Leaderboard', icon: TrophyIcon },
   { name: 'Analytics', icon: ChartBarIcon },
@@ -29,9 +31,14 @@ const navItems = [
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { logout, user } = useAuth();
 
-  const filteredItems = user?.role === 'Participant' 
-    ? navItems.filter(item => ['Dashboard', 'Registrations', 'Event Locations', 'Leaderboard', 'Settings'].includes(item.name))
-    : navItems.filter(item => !['Event Locations'].includes(item.name));
+  let filteredItems;
+  if (user?.role === 'Participant') {
+    filteredItems = navItems.filter(item => ['Dashboard', 'Registrations', 'Event Locations', 'Leaderboard', 'Settings'].includes(item.name));
+  } else if (user?.role === 'SuperAdmin') {
+    filteredItems = navItems.filter(item => !['Event Locations'].includes(item.name));
+  } else {
+    filteredItems = navItems.filter(item => !['Event Locations', 'Admin Requests'].includes(item.name));
+  }
 
   return (
     <div className="fixed left-0 top-0 h-screen w-72 bg-slate-900/60 backdrop-blur-2xl border-r border-white/10 p-6 flex flex-col z-50">

@@ -51,6 +51,11 @@ const userSchema = new mongoose.Schema({
     enum: ['Participant', 'Organizer', 'SuperAdmin', 'Admin'],
     default: 'Participant',
   },
+  adminRequestStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'rejected'],
+    default: 'none',
+  },
   points: {
     type: Number,
     default: 0,
