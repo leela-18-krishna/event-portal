@@ -76,8 +76,13 @@ const ManageEvents = ({ onEventAdded, events = [], eventToEdit, onEditStart }) =
 
   const handleEdit = (event) => {
     setEditingId(event._id);
-    const formattedDate = new Date(event.date).toISOString().slice(0, 16);
-    const formattedEndDate = event.endDate ? new Date(event.endDate).toISOString().slice(0, 16) : '';
+    const toLocalInput = (d) => {
+  const date = new Date(d);
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+const formattedDate = toLocalInput(event.date);
+const formattedEndDate = event.endDate ? toLocalInput(event.endDate) : '';
     setFormData({
       title: event.title,
       description: event.description,
