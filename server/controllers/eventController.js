@@ -2,23 +2,32 @@ import Event from '../models/Event.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 
-// @desc    Get all events
-// @route   GET /api/events
-// @access  Public
+const getEventStatus = (event) => {
+  const now = new Date();
+  const start = new Date(event.date);
+  const end = event.endDate ? new Date(event.endDate) : start;
+  if (now < start) return 'Upcoming';
+  if (now >= start && now <= end) return 'Live';
+  return 'Completed';
+};
+
+const attachStatus = (eventDoc) => {
+  const obj = eventDoc.toObject ? eventDoc.toObject() : eventDoc;
+  obj.status = getEventStatus(eventDoc);
+  return obj;
+};
+
 export const getEvents = async (req, res) => {
   try {
     const events = await Event.find({})
       .populate('organizer', 'name email phone')
       .populate('participants.user', 'name email phone');
-    res.json(events);
+    res.json(events.map(attachStatus));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Create an event
-// @route   POST /api/events
-// @access  Private/Organizer or SuperAdmin
 export const createEvent = async (req, res) => {
   try {
     const { title, description, date, endDate, venue, prizeMoneyPool, category, subEvents, contactPhone, contactEmail } = req.body;
@@ -44,14 +53,16 @@ export const createEvent = async (req, res) => {
   }
 };
 
-// @desc    Register a participant for an event
-// @route   POST /api/events/:id/register
-// @access  Private/Participant
 export const registerForEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
 
     if (event) {
+      const status = getEventStatus(event);
+      if (status !== 'Upcoming') {
+        return res.status(400).json({ message: 'Registration is closed - this event has already started or ended.' });
+      }
+
       const existingParticipant = event.participants.find(p => p.user.toString() === req.user._id.toString());
       if (existingParticipant) {
         return res.status(400).json({ message: `Already requested. Status: ${existingParticipant.status}` });
@@ -81,9 +92,6 @@ export const registerForEvent = async (req, res) => {
   }
 };
 
-// @desc    Update a participant status (Approve/Reject)
-// @route   PUT /api/events/:id/status/:userId
-// @access  Private/Organizer or SuperAdmin
 export const updateParticipantStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -98,12 +106,26 @@ export const updateParticipantStatus = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update status for this event' });
     }
 
+    const eventStatus = getEventStatus(event);
+
+    if (eventStatus === 'Completed') {
+      return res.status(400).json({ message: 'This event has ended. Approvals can no longer be changed.' });
+    }
+
+    if (eventStatus === 'Live') {
+      if (status === 'Rejected') {
+        return res.status(400).json({ message: 'Rejections are not allowed once the event has started.' });
+      }
+      if (status === 'Approved' && req.user.role !== 'SuperAdmin') {
+        return res.status(403).json({ message: 'Only a Super Admin can approve pending requests once the event has started.' });
+      }
+    }
+
     const participant = event.participants.find(p => p.user.toString() === req.params.userId);
     if (!participant) return res.status(404).json({ message: 'Participant not found in this event' });
 
     participant.status = status;
 
-    // Generate Certificate ID if approved
     if (status === 'Approved' && !participant.certificateId) {
       const year = new Date().getFullYear();
       const userPart = req.params.userId.slice(-4).toUpperCase();
@@ -113,7 +135,6 @@ export const updateParticipantStatus = async (req, res) => {
 
     await event.save();
 
-    // Notify user
     await Notification.create({
       user: req.params.userId,
       title: `Event Registration ${status}`,
@@ -122,7 +143,6 @@ export const updateParticipantStatus = async (req, res) => {
       link: '/registrations'
     });
 
-    // Award points if approved
     if (status === 'Approved') {
       const user = await User.findById(req.params.userId);
       if (user) {
@@ -137,9 +157,6 @@ export const updateParticipantStatus = async (req, res) => {
   }
 };
 
-// @desc    Delete an event
-// @route   DELETE /api/events/:id
-// @access  Private/Organizer or SuperAdmin
 export const deleteEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
@@ -149,6 +166,12 @@ export const deleteEvent = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this event' });
     }
 
+    const eventStatus = getEventStatus(event);
+
+    if (eventStatus === 'Completed' && req.user.role !== 'SuperAdmin') {
+      return res.status(403).json({ message: 'Only a Super Admin can delete a completed event.' });
+    }
+
     await event.deleteOne();
     res.json({ message: 'Event removed' });
   } catch (error) {
@@ -156,9 +179,6 @@ export const deleteEvent = async (req, res) => {
   }
 };
 
-// @desc    Update an event
-// @route   PUT /api/events/:id
-// @access  Private/Organizer or SuperAdmin
 export const updateEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
@@ -166,6 +186,11 @@ export const updateEvent = async (req, res) => {
 
     if (event.organizer.toString() !== req.user._id.toString() && req.user.role !== 'SuperAdmin') {
       return res.status(403).json({ message: 'Not authorized to update this event' });
+    }
+
+    const eventStatus = getEventStatus(event);
+    if (eventStatus !== 'Upcoming') {
+      return res.status(400).json({ message: 'This event can no longer be edited - it has already started or ended.' });
     }
 
     const { title, description, date, endDate, venue, prizeMoneyPool, category, subEvents, contactPhone, contactEmail } = req.body;
@@ -191,41 +216,31 @@ export const updateEvent = async (req, res) => {
   }
 };
 
-// @desc    Get user's requested events (History/Cart)
-// @route   GET /api/events/cart
-// @access  Private
 export const getCart = async (req, res) => {
   try {
     const events = await Event.find({
       'participants': { $elemMatch: { user: req.user._id } }
     }).populate('organizer', 'name email phone');
-    res.json(events);
+    res.json(events.map(attachStatus));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get organizer's pending approvals
-// @route   GET /api/events/approvals
-// @access  Private/Organizer or SuperAdmin
 export const getPendingApprovals = async (req, res) => {
   try {
     const events = await Event.find({ organizer: req.user._id }).populate('participants.user', 'name email phone');
-    res.json(events);
+    res.json(events.map(attachStatus));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Remove a participant (Withdraw or Admin Kick)
-// @route   DELETE /api/events/:id/participant/:userId
-// @access  Private
 export const removeParticipant = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
-    // Determine authorization: User removing themselves OR Admin/Organizer removing someone
     const isSelf = req.user._id.toString() === req.params.userId;
     const isOrganizer = event.organizer.toString() === req.user._id.toString();
     const isSuperAdmin = req.user.role === 'SuperAdmin';
@@ -234,7 +249,13 @@ export const removeParticipant = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to remove this participant' });
     }
 
-    // Remove participant from event
+    if (isSelf) {
+      const eventStatus = getEventStatus(event);
+      if (eventStatus !== 'Upcoming') {
+        return res.status(400).json({ message: 'You can no longer withdraw - this event has already started.' });
+      }
+    }
+
     event.participants = event.participants.filter(p => p.user.toString() !== req.params.userId);
     await event.save();
 
@@ -244,16 +265,22 @@ export const removeParticipant = async (req, res) => {
   }
 };
 
-// @desc    Add a review to an event
-// @route   POST /api/events/:id/reviews
-// @access  Private/Participant
 export const addEventReview = async (req, res) => {
   try {
     const { rating, comment } = req.body;
     const event = await Event.findById(req.params.id);
 
     if (event) {
-      // Check if user already reviewed
+      const eventStatus = getEventStatus(event);
+      if (eventStatus !== 'Completed') {
+        return res.status(400).json({ message: 'Reviews can only be submitted after the event has ended.' });
+      }
+
+      const participant = event.participants.find(p => p.user.toString() === req.user._id.toString());
+      if (!participant || participant.status !== 'Approved') {
+        return res.status(403).json({ message: 'Only approved participants can review this event.' });
+      }
+
       const alreadyReviewed = event.reviews.find(
         (r) => r.user.toString() === req.user._id.toString()
       );
@@ -271,7 +298,6 @@ export const addEventReview = async (req, res) => {
       event.reviews.push(review);
       await event.save();
 
-      // Award points for review
       const user = await User.findById(req.user._id);
       if (user) {
         const pointsAwarded = rating === 5 ? 30 : 10;
@@ -288,16 +314,12 @@ export const addEventReview = async (req, res) => {
   }
 };
 
-// @desc    Get all reviews (Admin view)
-// @route   GET /api/events/all-reviews
-// @access  Private/Admin
 export const getAllReviews = async (req, res) => {
   try {
     const events = await Event.find({ reviews: { $exists: true, $not: { $size: 0 } } })
       .populate('reviews.user', 'name email profilePic')
       .select('title reviews');
     
-    // Flatten reviews for the admin
     let allReviews = [];
     events.forEach(event => {
       event.reviews.forEach(review => {
@@ -314,9 +336,6 @@ export const getAllReviews = async (req, res) => {
   }
 };
 
-// @desc    Add a message to event discussion
-// @route   POST /api/events/:id/discussions
-// @access  Private/Approved Participant
 export const addDiscussionMessage = async (req, res) => {
   try {
     const { message } = req.body;
@@ -324,7 +343,6 @@ export const addDiscussionMessage = async (req, res) => {
 
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
-    // Only approved participants or organizers can chat
     const isApproved = event.participants.some(p => p.user.toString() === req.user._id.toString() && p.status === 'Approved');
     const isOrganizer = event.organizer.toString() === req.user._id.toString() || req.user.role === 'SuperAdmin';
 
@@ -344,9 +362,6 @@ export const addDiscussionMessage = async (req, res) => {
   }
 };
 
-// @desc    Get event discussions
-// @route   GET /api/events/:id/discussions
-// @access  Private
 export const getEventDiscussions = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate('discussions.user', 'name profilePic role');
@@ -357,9 +372,6 @@ export const getEventDiscussions = async (req, res) => {
   }
 };
 
-// @desc    Get user notifications
-// @route   GET /api/notifications
-// @access  Private
 export const getNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ user: req.user._id }).sort({ createdAt: -1 });
@@ -369,9 +381,6 @@ export const getNotifications = async (req, res) => {
   }
 };
 
-// @desc    Mark notifications as read
-// @route   PUT /api/notifications/read
-// @access  Private
 export const markNotificationsAsRead = async (req, res) => {
   try {
     await Notification.updateMany({ user: req.user._id, isRead: false }, { isRead: true });
@@ -381,9 +390,6 @@ export const markNotificationsAsRead = async (req, res) => {
   }
 };
 
-// @desc    Verify certificate by ID
-// @route   GET /api/events/verify/:certId
-// @access  Public
 export const verifyCertificate = async (req, res) => {
   try {
     const event = await Event.findOne({ 'participants.certificateId': req.params.certId.toUpperCase() })
@@ -404,9 +410,6 @@ export const verifyCertificate = async (req, res) => {
   }
 };
 
-// @desc    Get Leaderboard
-// @route   GET /api/users/leaderboard
-// @access  Public
 export const getLeaderboard = async (req, res) => {
   try {
     const topUsers = await User.find({ role: 'Participant' })
