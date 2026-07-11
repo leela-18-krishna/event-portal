@@ -31,14 +31,12 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
   const [blastTrigger, setBlastTrigger] = useState(0);
   const [reviewSubmitted, setReviewSubmitted] = useState(event.reviews?.some(r => r.user === user?._id || r.user?._id === user?._id));
   
-  // Robustly find current user's registration
   const currentReg = myRegistration || event.participants?.find(p => {
     const pId = p.user?._id || p.user?.id || p.user;
     const uId = user?._id || user?.id;
     return pId && uId && pId.toString() === uId.toString();
   });
 
-  // New States for Premium Features
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -188,7 +186,6 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
           </div>
         </div>
 
-        {/* Interaction Bar for Participants (Approved Only) & Admin (Oversight Only) */}
         {user?.role !== 'Participant' ? (
           <div className="mb-6">
             <button 
@@ -231,7 +228,6 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
           </div>
         )}
 
-        {/* Discussion / Chat Panel */}
         <AnimatePresence>
           {showChat && (
             <motion.div 
@@ -282,7 +278,6 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
           )}
         </AnimatePresence>
 
-        {/* Review Section */}
         {user?.role === 'Participant' && myRegistration?.status === 'Approved' && new Date(event.date) <= new Date() && !reviewSubmitted && (
           <div className="mt-4 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3 mb-4">
             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Rate this experience</p>
@@ -297,7 +292,6 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
           </div>
         )}
 
-        {/* Action Buttons */}
         <div className="flex items-center justify-between pt-5 border-t border-white/10 mt-auto">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Prize Pool</p>
@@ -320,12 +314,12 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
                   <button onClick={handleParticipate} className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-500 transition-all">Participate</button>
                 )}
               </div>
-            ) : (
+            ) : (onEdit || onDelete) ? (
               <div className="flex space-x-2">
-                <button onClick={onEdit} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white">Edit</button>
+                {onEdit && <button onClick={onEdit} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white">Edit</button>}
                 {onDelete && <button onClick={onDelete} className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">Delete</button>}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

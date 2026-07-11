@@ -62,6 +62,9 @@ export const registerForEvent = async (req, res) => {
       if (status !== 'Upcoming') {
         return res.status(400).json({ message: 'Registration is closed - this event has already started or ended.' });
       }
+      if (event.organizer.toString() === req.user._id.toString()) {
+        return res.status(400).json({ message: 'You cannot register for your own event.' });
+      }
 
       const existingParticipant = event.participants.find(p => p.user.toString() === req.user._id.toString());
       if (existingParticipant) {

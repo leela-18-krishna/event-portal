@@ -32,12 +32,16 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const { logout, user } = useAuth();
 
   let filteredItems;
-  if (user?.role === 'Participant') {
-    filteredItems = navItems.filter(item => ['Dashboard', 'Registrations', 'Event Locations', 'Leaderboard', 'Settings'].includes(item.name));
-  } else if (user?.role === 'SuperAdmin') {
+  if (user?.role === 'SuperAdmin') {
     filteredItems = navItems.filter(item => !['Event Locations'].includes(item.name));
+  } else if (user?.role === 'Admin' || user?.role === 'Organizer') {
+    filteredItems = navItems.filter(item =>
+      ['Dashboard', 'Manage Events', 'Registrations', 'Event Locations', 'Approvals', 'Leaderboard', 'Settings'].includes(item.name)
+    );
   } else {
-    filteredItems = navItems.filter(item => !['Event Locations', 'Admin Requests'].includes(item.name));
+    filteredItems = navItems.filter(item =>
+      ['Dashboard', 'Registrations', 'Event Locations', 'Leaderboard', 'Settings'].includes(item.name)
+    );
   }
 
   return (

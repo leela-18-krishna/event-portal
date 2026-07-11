@@ -90,10 +90,6 @@ const MainLayout = () => {
                     <EventCard 
                       key={event._id} 
                       event={event} 
-                      onEdit={() => {
-                        setEventToEdit(event);
-                        setActiveTab('Manage Events');
-                      }}
                     />
                   ))
                 )}
