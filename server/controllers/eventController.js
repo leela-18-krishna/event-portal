@@ -62,6 +62,7 @@ export const registerForEvent = async (req, res) => {
       if (status !== 'Upcoming') {
         return res.status(400).json({ message: 'Registration is closed - this event has already started or ended.' });
       }
+
       if (event.organizer.toString() === req.user._id.toString()) {
         return res.status(400).json({ message: 'You cannot register for your own event.' });
       }
@@ -319,15 +320,23 @@ export const addEventReview = async (req, res) => {
 
 export const getAllReviews = async (req, res) => {
   try {
-    const events = await Event.find({ reviews: { $exists: true, $not: { $size: 0 } } })
+    const query = { reviews: { $exists: true, $not: { $size: 0 } } };
+    if (req.user.role !== 'SuperAdmin') {
+      query.organizer = req.user._id;
+    }
+
+    const events = await Event.find(query)
       .populate('reviews.user', 'name email profilePic')
-      .select('title reviews');
-    
+      .populate('participants.user', 'name email phone')
+      .select('title reviews participants');
+
     let allReviews = [];
     events.forEach(event => {
       event.reviews.forEach(review => {
         allReviews.push({
+          eventId: event._id,
           eventTitle: event.title,
+          participants: event.participants,
           ...review._doc
         });
       });

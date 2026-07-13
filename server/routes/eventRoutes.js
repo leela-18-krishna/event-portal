@@ -7,19 +7,19 @@ const router = express.Router();
 
 router.route('/')
   .get(getEvents)
-  .post(protect, authorize('Organizer', 'SuperAdmin'), createEvent);
+  .post(protect, authorize('Organizer', 'Admin', 'SuperAdmin'), createEvent);
 
 router.get('/cart', protect, getCart);
-router.get('/approvals', protect, authorize('Organizer', 'SuperAdmin'), getPendingApprovals);
-router.get('/all-reviews', protect, authorize('Organizer', 'SuperAdmin'), getAllReviews);
+router.get('/approvals', protect, authorize('Organizer', 'Admin', 'SuperAdmin'), getPendingApprovals);
+router.get('/all-reviews', protect, authorize('Organizer', 'Admin', 'SuperAdmin'), getAllReviews);
 router.get('/notifications', protect, getNotifications);
 router.put('/notifications/read', protect, markNotificationsAsRead);
 router.get('/leaderboard', getLeaderboard);
 router.get('/verify/:certId', verifyCertificate);
 
 router.route('/:id')
-  .delete(protect, authorize('Organizer', 'SuperAdmin'), deleteEvent)
-  .put(protect, authorize('Organizer', 'SuperAdmin'), updateEvent);
+  .delete(protect, authorize('Organizer', 'Admin', 'SuperAdmin'), deleteEvent)
+  .put(protect, authorize('Organizer', 'Admin', 'SuperAdmin'), updateEvent);
 
 router.post('/:id/register', protect, registerForEvent);
 router.post('/:id/reviews', protect, addEventReview);
@@ -27,7 +27,7 @@ router.route('/:id/discussions')
   .post(protect, addDiscussionMessage)
   .get(protect, getEventDiscussions);
 
-router.put('/:id/status/:userId', protect, authorize('Organizer', 'SuperAdmin'), updateParticipantStatus);
+router.put('/:id/status/:userId', protect, authorize('Organizer', 'Admin', 'SuperAdmin'), updateParticipantStatus);
 router.delete('/:id/participant/:userId', protect, removeParticipant);
 
 export default router;
