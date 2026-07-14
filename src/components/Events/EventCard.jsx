@@ -181,7 +181,7 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
           <div className="flex items-center text-sm text-gray-300">
             <MapPinIcon className="w-4 h-4 mr-2 text-indigo-400" />
             <span className="text-xs truncate">
-              {new Date(event.date) <= new Date() || user?.role !== 'Participant' ? event.venue : 'Location Encrypted'}
+              {(user?.role !== 'Participant' || (currentReg && currentReg.status !== 'Pending') || new Date(event.date) <= new Date()) ? event.venue : 'Location Encrypted'}
             </span>
           </div>
         </div>
@@ -302,11 +302,15 @@ const EventCard = ({ event, onWithdraw, onEdit, onDelete, myRegistration }) => {
           <div className="flex flex-col items-end">
             {user?.role === 'Participant' ? (
               <div className="flex space-x-2">
-                {onWithdraw ? (
-                  new Date(event.date) > new Date() ? (
+                {currentReg?.status === 'Pending' ? (
+                  <span className="px-5 py-2.5 text-sm font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl uppercase tracking-widest">Pending Approval</span>
+                ) : currentReg?.status === 'Rejected' ? (
+                  <span className="px-5 py-2.5 text-sm font-black text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl uppercase tracking-widest">Rejected</span>
+                ) : currentReg?.status === 'Approved' ? (
+                  onWithdraw && new Date(event.date) > new Date() ? (
                     <button onClick={() => onWithdraw(event._id)} className="px-5 py-2.5 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all">Withdraw</button>
                   ) : (
-                    <span className="px-5 py-2.5 text-sm font-black text-gray-600 bg-gray-900/40 border border-white/5 rounded-xl cursor-not-allowed uppercase tracking-widest">Locked</span>
+                    <span className="px-5 py-2.5 text-sm font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl uppercase tracking-widest">Approved</span>
                   )
                 ) : new Date(event.date) < new Date() ? (
                   <span className="px-5 py-2.5 text-sm font-bold text-gray-500 bg-gray-500/10 border border-gray-500/20 rounded-xl cursor-not-allowed">Closed</span>
