@@ -64,6 +64,15 @@ const eventSchema = new mongoose.Schema({
       type: String,
       unique: true,
       sparse: true
+    },
+    certificateEmailed: {
+      type: Boolean,
+      default: false,
+    },
+    ticketCode: {
+      type: String,
+      unique: true,
+      sparse: true
     }
   }],
   reviews: [

@@ -1,6 +1,18 @@
 import Event from '../models/Event.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import nodemailer from 'nodemailer';
+
+const sendEventEmail = async (to, subject, text) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+  await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, text });
+};
 
 const getEventStatus = (event) => {
   const now = new Date();
@@ -17,11 +29,50 @@ const attachStatus = (eventDoc) => {
   return obj;
 };
 
+const emailPendingCertificates = async (events) => {
+  for (const event of events) {
+    const status = getEventStatus(event);
+    if (status !== 'Completed') continue;
+
+    let needsSave = false;
+    const toEmail = [];
+
+    for (const p of event.participants) {
+      if (p.status === 'Approved' && p.certificateId && !p.certificateEmailed) {
+        p.certificateEmailed = true;
+        needsSave = true;
+        toEmail.push(p);
+      }
+    }
+
+    if (needsSave) {
+      await event.save();
+      for (const p of toEmail) {
+        try {
+          const certUser = await User.findById(p.user);
+          if (certUser) {
+            await sendEventEmail(
+              certUser.email,
+              `Your Certificate: ${event.title}`,
+              `Hi ${certUser.name},\n\n${event.title} has concluded. Your certificate is ready.\n\nCertificate ID: ${p.certificateId}\nVerify or view it at: https://event-portal-plum.vercel.app/verify/${p.certificateId}\n\nThank you for participating!\n- Event Portal Team`
+            );
+          }
+        } catch (emailErr) {
+          console.error('Certificate email failed to send:', emailErr.message);
+        }
+      }
+    }
+  }
+};
+
 export const getEvents = async (req, res) => {
   try {
     const events = await Event.find({})
       .populate('organizer', 'name email phone')
       .populate('participants.user', 'name email phone');
+
+    emailPendingCertificates(events).catch(err => console.error('Certificate email pass failed:', err.message));
+
     res.json(events.map(attachStatus));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -95,7 +146,6 @@ export const registerForEvent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 export const updateParticipantStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -137,7 +187,26 @@ export const updateParticipantStatus = async (req, res) => {
       participant.certificateId = `EP-${year}-${userPart}-${randomStr}`;
     }
 
+    if (status === 'Approved' && !participant.ticketCode) {
+      participant.ticketCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    }
+
     await event.save();
+
+    if (status === 'Approved') {
+      try {
+        const approvedUser = await User.findById(req.params.userId);
+        if (approvedUser) {
+          await sendEventEmail(
+            approvedUser.email,
+            `Your Ticket: ${event.title}`,
+            `Hi ${approvedUser.name},\n\nYour registration for ${event.title} has been approved!\n\nEvent: ${event.title}\nDate: ${new Date(event.date).toLocaleString()}\nVenue: ${event.venue}\n\nYour ticket verification code (present this at the venue): ${participant.ticketCode}\n\nSee you there!\n- Event Portal Team`
+          );
+        }
+      } catch (emailErr) {
+        console.error('Ticket email failed to send:', emailErr.message);
+      }
+    }
 
     await Notification.create({
       user: req.params.userId,
@@ -219,7 +288,6 @@ export const updateEvent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 export const getCart = async (req, res) => {
   try {
     const events = await Event.find({
@@ -373,7 +441,6 @@ export const addDiscussionMessage = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 export const getEventDiscussions = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate('discussions.user', 'name profilePic role');
